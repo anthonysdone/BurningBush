@@ -3,3 +3,4 @@ build/
 basednn/
 old/
 *.md
+*.out

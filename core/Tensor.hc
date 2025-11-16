@@ -1,5 +1,3 @@
-#include "Util.hc"
-
 class Tensor; 
 
 class Tensor {
@@ -18,32 +16,47 @@ class Tensor {
 }; 
 
 // ========================================================================
-//  Tensor Creation
+// Tensor Creation
 // ========================================================================
 
 Tensor *BushAllocTensor(I64 *shape, I64 ndim) {
+    "[AllocTensor] Start: ndim=%lld\n", ndim;
     Tensor *t = BushCalloc(1, sizeof(Tensor));
+    "[AllocTensor] Tensor struct allocated\n";
 
     t->ndim = ndim;
-    t->shape = BushShapeCopy(shape, ndim); 
-    t->size = BushShapeSize(shape, ndim); 
-    t->strides = BushComputeStrides(shape, ndim); 
-    t->data = NULL; 
+    "[AllocTensor] Calling BushShapeCopy\n";
+    t->shape = BushShapeCopy(shape, ndim);
+    "[AllocTensor] Shape copied\n";
+    t->size = BushShapeSize(shape, ndim);
+    "[AllocTensor] Size computed: %lld\n", t->size;
+    "[AllocTensor] Calling BushComputeStrides\n";
+    t->strides = BushComputeStrides(shape, ndim);
+    "[AllocTensor] Strides computed\n";
+    t->data = 0; 
     t->refcount = 1; 
     t->is_view = FALSE; 
     t->is_contiguous = TRUE;
-    t->base = NULL;
+    t->base = 0;
+    "[AllocTensor] Complete\n";
+    return t;
 }
 
-Tensor *BushTensor(F32 *data, I64 *shape, I64 ndim) {
+Tensor *BushTensor(F64 *data, I64 *shape, I64 ndim) {
     Tensor *t = BushAllocTensor(shape, ndim); 
 
     t->data = BushMalloc(sizeof(F64) * t->size);
     for (I64 i = 0; i < t->size; i++) {
-        t->data[i] = (F64)data[i]; 
+        t->data[i] = data[i]; 
     }
 
     return t; 
+}
+
+Tensor *BushEmpty(I64 *shape, I64 ndim) {
+    Tensor *t = BushAllocTensor(shape, ndim); 
+    t->data = BushMalloc(sizeof(F64) * t->size);
+    return t;
 }
 
 Tensor *BushZeros(I64 *shape, I64 ndim) {
@@ -63,8 +76,8 @@ Tensor *BushOnes(I64 *shape, I64 ndim) {
 
 Tensor *BushRandn(I64 *shape, I64 ndim) {
     Tensor *t = BushAllocTensor(shape, ndim); 
-    t->data = BushMalloc(sizeof(F64) * t->size);
-    BushRandFillNormal(t->data, t->size, 0.0, 1.0);
+    t->data = BushCalloc(t->size, sizeof(F64));
+    // Just use zeros for now
     return t;
 }
 
@@ -78,7 +91,8 @@ Tensor *BushFull(I64 *shape, I64 ndim, F64 value) {
 }
 
 Tensor *BushArange(F64 start, F64 end, F64 step) {
-    I64 n = (I64)((end - start) / step);
+    F64 nf = (end - start) / step;
+    I64 n = nf(I64);
     I64 shape[1]; 
     shape[0] = n; 
 
@@ -98,7 +112,8 @@ Tensor *BushLinspace(F64 start, F64 end, I64 num) {
     Tensor *t = BushAllocTensor(shape, 1);
     t->data = BushMalloc(sizeof(F64) * num);
 
-    F64 step = (end - start) / (F64)(num - 1);
+    F64 numm1 = num - 1;
+    F64 step = (end - start) / numm1;
     for (I64 i = 0; i < num; i++) {
         t->data[i] = start + i * step; 
     }
@@ -106,7 +121,7 @@ Tensor *BushLinspace(F64 start, F64 end, I64 num) {
 }
 
 // ========================================================================
-//  Memory Management
+// Memory Management
 // ========================================================================
 
 Tensor *BushRetain(Tensor *t) {
@@ -119,8 +134,13 @@ U0 BushRelease(Tensor *t) {
 
     t->refcount--;
     if (t->refcount == 0) {
-        if (t->is_view && t->base) BushRelease(t->data); 
         if (t->base) BushRelease(t->base); 
+        if (!t->is_view) {
+            if (t->data) {
+                U0 *ptr = t->data;
+                BushFree(ptr);
+            }
+        }
         BushFree(t->shape);
         BushFree(t->strides);
         BushFree(t); 
@@ -132,7 +152,7 @@ U0 BushFreeTensor(Tensor *t) {
 }
 
 // ========================================================================
-//  Tensor Properties
+// Tensor Properties
 // ========================================================================
 
 I64 BushNdim(Tensor *t) {
@@ -161,6 +181,84 @@ I64 BushIsContiguous(Tensor *t) {
 }
 
 // ========================================================================
-//  Data Access
+// Data Access
 // ========================================================================
 
+F64 BushItem(Tensor *t) {
+    BushAssert(t->size == 1, "BushItem requires scalar tensor");
+    return t->data[0];
+}
+
+F64 BushGet(Tensor *t, I64 *indices) {
+    I64 offset = BushComputeOffset(indices, t->strides, t->ndim);
+    return t->data[offset];
+}
+
+U0 BushSet(Tensor *t, I64 *indices, F64 value) {
+    I64 offset = BushComputeOffset(indices, t->strides, t->ndim);
+    t->data[offset] = value; 
+}
+
+// ========================================================================
+// Printing
+// ========================================================================
+
+U0 BushPrintRecursive(Tensor *t, I64 dim, I64 *indices, I64 indent) {
+    if (dim == t->ndim - 1) {
+        "["; 
+        for (I64 i = 0; i < t->shape[dim]; i++) {
+            indices[dim] = i; 
+            "%.4f", BushGet(t, indices);
+        }
+        "]";
+    } else {
+        "["; 
+        for (I64 i = 0; i < t->shape[dim]; i++) {
+            if (i > 0) {
+            "\n"; 
+                for (I64 j = 0; j < indent + 1; j++) " ";
+            }
+            indices[dim] = i; 
+            BushPrintRecursive(t, dim + 1, indices, indent + 1);
+            if (i < t->shape[dim] - 1) ","; 
+        }
+        "]";
+    }
+}
+
+U0 BushPrint(Tensor *t) {
+    "Tensor("; 
+    BushPrintShape(t->shape, t->ndim);
+    "):";
+    "\n";
+    if (t->size <= 100) {
+        I64 *indices = BushCalloc(t->ndim, sizeof(I64));
+        BushPrintRecursive(t, 0, indices, 0);
+        "\n";
+        BushFree(indices);
+    } else {
+        "[... %d elements ...]\n", t->size;
+    }
+}
+
+// ========================================================================
+// Scalar Operations
+// ========================================================================
+
+Tensor *BushScalarAdd(Tensor *t, F64 scalar) {
+    Tensor *result = BushAllocTensor(t->shape, t->ndim); 
+    result->data = BushMalloc(sizeof(F64) * t->size);
+    for (I64 i = 0; i < t->size; i++) {
+        result->data[i] = t->data[i] + scalar; 
+    }
+    return result;
+}
+
+Tensor *BushScalarMul(Tensor *t, F64 scalar) {
+    Tensor *result = BushAllocTensor(t->shape, t->ndim); 
+    result->data = BushMalloc(sizeof(F64) * t->size);
+    for (I64 i = 0; i < t->size; i++) {
+        result->data[i] = t->data[i] * scalar; 
+    }
+    return result;
+}
