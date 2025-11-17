@@ -1,6 +1,8 @@
 .DS_Store
-build/
-basednn/
 old/
+debug/logs/
+debug/output/
+debug/results/
+debug/core1
 *.md
 *.out
