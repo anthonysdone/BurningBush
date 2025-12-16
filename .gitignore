@@ -1,8 +1,0 @@
-.DS_Store
-old/
-debug/logs/
-debug/output/
-debug/results/
-debug/core1
-*.md
-*.out
