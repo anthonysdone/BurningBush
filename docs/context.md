@@ -18,9 +18,9 @@
 ```
 frontend/          # HolyC: tensor.HC, autograd.HC, nn/*.HC, optim/*.HC
 backend/kernels/   # CUDA: *.cu files
-abi/              # C ABI: cuda_abi.h, cuda_abi.cpp (→ libburningbush.so)
-examples/         # mlp.HC, alexnet.HC, nanogpt.HC
-tests/            # test_*.HC files
+abi/               # C ABI: cuda_abi.h, cuda_abi.cpp (→ libburningbush.so)
+examples/          # mlp.HC, alexnet.HC, nanogpt.HC
+tests/             # test_*.HC files
 ```
 
 ---

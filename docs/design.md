@@ -892,8 +892,8 @@ BurningBush/
 └── docs/
     ├── design.md              # This file
     ├── checklist.md           # Implementation checklist
-    ├── holyc_guide.md         # HolyC language primer
-    └── cuda_guide.md          # CUDA optimization notes
+    ├── holyc.md               # HolyC language context
+    └── context.md             # Design and implementation context
 ```
 
 ---
