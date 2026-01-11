@@ -5,13 +5,13 @@
 **Goal**: Get HolyC ↔ CUDA communication working with minimal operations.
 
 ### C ABI Layer (C/CUDA)
- Create `abi/cuda_abi.h`
-  - [ ] Declare `cuda_malloc(size_t bytes)` → `void*`
-  - [ ] Declare `cuda_free(void* ptr)`
-  - [ ] Declare `cuda_memcpy_h2d(void* dst, void* src, size_t bytes)`
-  - [ ] Declare `cuda_memcpy_d2h(void* dst, void* src, size_t bytes)`
-  - [ ] Declare `cuda_add(float* a, float* b, float* c, int n)`
-  - [ ] Add error checking declarations
+ - [x] Create `abi/cuda_abi.h`
+  - [x] Declare `cuda_malloc(size_t bytes)` → `void*`
+  - [x] Declare `cuda_free(void* ptr)`
+  - [x] Declare `cuda_memcpy_h2d(void* dst, void* src, size_t bytes)`
+  - [x] Declare `cuda_memcpy_d2h(void* dst, void* src, size_t bytes)`
+  - [x] Declare `cuda_add(float* a, float* b, float* c, int n)`
+  - [x] Add error checking declarations
 
  Create `abi/cuda_abi.cpp`
   - [ ] Implement `cuda_malloc` using `cudaMalloc`

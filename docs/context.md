@@ -16,11 +16,66 @@
 
 ## Repository Structure
 ```
-frontend/          # HolyC: tensor.HC, autograd.HC, nn/*.HC, optim/*.HC
-backend/kernels/   # CUDA: *.cu files
-abi/               # C ABI: cuda_abi.h, cuda_abi.cpp (→ libburningbush.so)
-examples/          # mlp.HC, alexnet.HC, nanogpt.HC
-tests/             # test_*.HC files
+BurningBush/
+├── frontend/
+│   ├── tensor.HC              # CTensor class, creation ops
+│   ├── autograd.HC            # CAutoNode, tape, backward()
+│   ├── functional.HC          # Stateless ops (wrappers for C ABI)
+│   ├── module.HC              # CModule base class
+│   ├── nn/
+│   │   ├── linear.HC          # CLinear layer
+│   │   ├── conv2d.HC          # CConv2d layer
+│   │   ├── pooling.HC         # CMaxPool2d, CAvgPool2d
+│   │   ├── layernorm.HC       # CLayerNorm
+│   │   ├── embedding.HC       # CEmbedding
+│   │   ├── attention.HC       # CAttention, CMultiHeadAttention
+│   │   └── activation.HC      # CGELU, CReLU (thin wrappers)
+│   └── optim/
+│       ├── sgd.HC             # SGD optimizer
+│       └── adam.HC            # Adam optimizer
+│
+├── backend/
+│   ├── kernels/
+│   │   ├── elementwise.cu     # add, mul, relu, gelu
+│   │   ├── reduce.cu          # sum, max, mean
+│   │   ├── softmax.cu         # softmax, log_softmax
+│   │   ├── matmul.cu          # GEMM (naive → optimized variants)
+│   │   ├── layernorm.cu       # layernorm forward/backward
+│   │   ├── embedding.cu       # gather/scatter
+│   │   ├── attention.cu       # attention (naive → FlashAttention)
+│   │   ├── conv2d.cu          # conv2d (naive → optimized)
+│   │   ├── pooling.cu         # max pooling, avg pooling
+│   │   └── utils.cu           # im2col, col2im, transpose
+│   └── Makefile               # nvcc build rules
+│
+├── abi/
+│   ├── cuda_abi.h             # C function declarations
+│   ├── cuda_abi.cpp           # C ABI implementation
+│   └── Makefile               # Build shared library (.so/.dll)
+│
+├── examples/
+│   ├── mlp.HC                 # MLP on MNIST
+│   ├── alexnet.HC             # AlexNet on CIFAR-10
+│   ├── nanogpt.HC             # Small GPT (char-level)
+│   └── data/
+│       └── loaders.HC         # Simple data loading utilities
+│
+├── tests/
+│   ├── test_ops.HC            # Unit tests for operations
+│   ├── test_autograd.HC       # Gradcheck tests
+│   ├── test_modules.HC        # Module tests
+│   └── test_cuda.HC           # CUDA kernel correctness tests
+│
+├── scripts/
+│   ├── build.sh               # Build everything (CUDA, ABI, HolyC)
+│   ├── test.sh                # Run test suite
+│   └── profile.sh             # Profile with Nsight
+│
+└── docs/
+    ├── design.md              # This file
+    ├── checklist.md           # Implementation checklist
+    ├── holyc.md               # HolyC language context
+    └── context.md             # Design and implementation context
 ```
 
 ---
